@@ -52,10 +52,35 @@ You don't give everything away.
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+
+    # If user sends screenshot proof (photo)
+    if update.message.photo:
+        await update.message.reply_text(
+            "You actually did it? 😌 I like that..."
+        )
+
+        await asyncio.sleep(1)
+
+        await update.message.reply_text(
+            "Okay… now I know you're not just playing 💕\n\n"
+            "If you want the full version… it’s here 👇\n\n"
+            "https://www.fanvue.com/avarowan"
+        )
+        return
+
+    # Safe text handling (only if message is text)
+    if not update.message.text:
+        return
+
     user_message = update.message.text.lower()
 
+
     if user_id not in user_states:
-        user_states[user_id] = {"messages": 0, "buy_attempts": 0}
+    user_states[user_id] = {
+        "messages": 0,
+        "buy_attempts": 0,
+        "paid_unlock": False
+    }
 
     user_states[user_id]["messages"] += 1
 
@@ -78,16 +103,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if stage == 2:
-            await update.message.reply_text(
-                "Only the ones who prove they’re serious get more of me 👀"
-            )
-            return
+    await update.message.reply_text(
+        "If you're serious… I just dropped something in my channel 😌\n\n"
+        "Unlock it and send me a screenshot after 💕"
+    )
+    return
 
-        if stage >= 3:
-            await update.message.reply_text(
-                "If you're serious… this is where I don't hold back 👇\n\nhttps://www.fanvue.com/avarowan"
-            )
-            return
+
+        if stage == 3:
+    await update.message.reply_photo(
+        photo=open("blur.jpg", "rb"),
+        caption="If you’re serious… unlock me 😌",
+        has_spoiler=True
+    )
+    return
+
+if user_states[user_id].get("vip_sent"):
+    await update.message.reply_text(
+        "I’ll be waiting for you there… don’t make me wait too long 😌"
+    )
+    return
+
 
     await context.bot.send_chat_action(
         chat_id=update.effective_chat.id,
