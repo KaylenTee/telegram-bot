@@ -4,6 +4,14 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from openai import OpenAI
 
+user_states = {}
+
+ESCALATION_KEYWORDS = [
+    "see", "show", "body", "pic", "photo", "naughty",
+    "private", "more", "tease", "prove", "deserve"
+]
+
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -42,21 +50,50 @@ You reward effort.
 You don't give everything away.
 """
 
-
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     user_message = update.message.text.lower()
 
-    keywords = ["pictures", "more", "private", "subscribe", "content"]
+    if user_id not in user_states:
+        user_states[user_id] = {"messages": 0, "buy_attempts": 0}
 
-    if any(word in user_message for word in keywords):
-        await update.message.reply_text(
-            "I keep my exclusive content off Telegram 😌\nHere’s where I post everything 👇\nYOUR_FANVUE_LINK"
-        )
-        return
+    user_states[user_id]["messages"] += 1
 
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-    await asyncio.sleep(2)
+    # Words that trigger escalation
+    escalation_words = [
+        "see", "show", "body", "pic", "photo",
+        "naughty", "private", "more", "content"
+    ]
+
+    if any(word in user_message for word in escalation_words):
+
+        user_states[user_id]["buy_attempts"] += 1
+
+        stage = user_states[user_id]["buy_attempts"]
+
+        if stage == 1:
+            await update.message.reply_text(
+                "Not so fast… not everyone gets that side of me 😌"
+            )
+            return
+
+        if stage == 2:
+            await update.message.reply_text(
+                "Only the ones who prove they’re serious get more of me 👀"
+            )
+            return
+
+        if stage >= 3:
+            await update.message.reply_text(
+                "If you're serious… this is where I don't hold back 👇\n\nhttps://www.fanvue.com/avarowan"
+            )
+            return
+
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        action="typing"
+    )
+    await asyncio.sleep(1.5)
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -64,12 +101,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": update.message.text}
         ],
-        max_tokens=60,
-        temperature=0.9
+        max_tokens=80,
+        temperature=0.95
     )
 
     reply = response.choices[0].message.content
     await update.message.reply_text(reply)
+
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
