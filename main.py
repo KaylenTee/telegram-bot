@@ -10,8 +10,7 @@ OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=OPENAI_KEY)
 
-# Replace this with your PRIVATE CHANNEL LINK
-PRIVATE_CHANNEL_LINK = "YOUR_PRIVATE_CHANNEL_LINK"
+PRIVATE_CHANNEL_LINK = "https://t.me/+eBmePTA4eKg5MDYx"
 
 # ========== AI PERSONALITY ==========
 SYSTEM_PROMPT = """
